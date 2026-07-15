@@ -1,38 +1,55 @@
-"use client"
+"use client";
+
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useState } from "react";
 
+type QRRow = Record<string, string>;
+
 function Home() {
-  const [rows, setRows] = useState([]);
-  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [rows, setRows] = useState<QRRow[]>([]);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
 
   // Parse QR Code into an object
-  const parseQRCode = (text) => {
-    return text.split("*").reduce((obj, item) => {
+  const parseQRCode = (text: string): QRRow => {
+    return text.split("*").reduce<QRRow>((obj, item) => {
       const [key, ...value] = item.split(":");
-      if (key) obj[key] = value.join(":");
+
+      if (key) {
+        obj[key] = value.join(":");
+      }
+
       return obj;
     }, {});
   };
 
-  const handleScan = (detectedCodes) => {
+  const handleScan = (
+    detectedCodes: Array<{ rawValue: string }>
+  ): void => {
     if (!detectedCodes.length) return;
 
-    const parsedRows = detectedCodes.map((code) => parseQRCode(code.rawValue));
+    const parsedRows = detectedCodes.map((code) =>
+      parseQRCode(code.rawValue)
+    );
 
     setRows((prevRows) => {
-      const existing = new Set(prevRows.map((row) => JSON.stringify(row)));
+      const existing = new Set(
+        prevRows.map((row) => JSON.stringify(row))
+      );
 
       const newRows = parsedRows.filter(
-        (row) => !existing.has(JSON.stringify(row)),
+        (row) => !existing.has(JSON.stringify(row))
       );
 
       if (newRows.length > 0) {
         const newHeaders = [
-          ...new Set(newRows.flatMap((row) => Object.keys(row))),
+          ...new Set(
+            newRows.flatMap((row) => Object.keys(row))
+          ),
         ];
 
-        setSelectedColumns((prev) => [...new Set([...prev, ...newHeaders])]);
+        setSelectedColumns((prev) => [
+          ...new Set([...prev, ...newHeaders]),
+        ]);
       }
 
       return [...prevRows, ...newRows];
@@ -40,45 +57,47 @@ function Home() {
   };
 
   // Get all headers dynamically
-  const headers =
+  const headers: string[] =
     rows.length > 0
       ? [...new Set(rows.flatMap((row) => Object.keys(row)))]
       : [];
 
   // Delete a row
-  const deleteRow = (index) => {
+  const deleteRow = (index: number): void => {
     setRows((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Export selected columns to TXT
-  const exportTXT = () => {
-  const content = rows
-    .map((row) => {
-      return Object.entries(row)
-        .filter(([key]) => selectedColumns.includes(key))
-        .map(([key, value]) => `${key}:${value}`)
-        .join("*");
-    })
-    .join("\n");
+  const exportTXT = (): void => {
+    const content = rows
+      .map((row) => {
+        return Object.entries(row)
+          .filter(([key]) => selectedColumns.includes(key))
+          .map(([key, value]) => `${key}:${value}`)
+          .join("*");
+      })
+      .join("\n");
 
-  const blob = new Blob([content], {
-    type: "text/plain;charset=utf-8",
-  });
+    const blob = new Blob([content], {
+      type: "text/plain;charset=utf-8",
+    });
 
-  const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "qrcodes.txt";
-  a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "qrcodes.txt";
+    a.click();
 
-  URL.revokeObjectURL(url);
-};
+    URL.revokeObjectURL(url);
+  };
 
   // Toggle export column
-  const toggleColumn = (column) => {
+  const toggleColumn = (column: string): void => {
     if (selectedColumns.includes(column)) {
-      setSelectedColumns((prev) => prev.filter((c) => c !== column));
+      setSelectedColumns((prev) =>
+        prev.filter((c) => c !== column)
+      );
     } else {
       setSelectedColumns((prev) => [...prev, column]);
     }
@@ -90,7 +109,7 @@ function Home() {
       <div className="mx-auto w-full max-w-md rounded-lg overflow-hidden shadow-lg">
         <Scanner
           onScan={handleScan}
-          onError={(error) => console.log(error)}
+          onError={(error: unknown) => console.log(error)}
         />
       </div>
 
@@ -110,7 +129,7 @@ function Home() {
                 >
                   <input
                     type="checkbox"
-                    //checked={selectedColumns.includes(header)}
+                    checked={selectedColumns.includes(header)}
                     onChange={() => toggleColumn(header)}
                   />
                   {header}
